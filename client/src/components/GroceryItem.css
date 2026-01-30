@@ -1,0 +1,84 @@
+.grocery-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.grocery-item:last-child {
+  border-bottom: none;
+}
+
+.grocery-item.checked {
+  background-color: #f0fdf4;
+}
+
+.grocery-item.checked .item-name {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.grocery-item.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-right: 12px;
+}
+
+.checkbox-container input {
+  width: 20px;
+  height: 20px;
+  accent-color: #10b981;
+  cursor: pointer;
+}
+
+.item-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.item-name {
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.item-quantity {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.item-source {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.item-source.staple {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.item-source.recipe {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.item-source.manual {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+
+.item-source.pantry_restock {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
