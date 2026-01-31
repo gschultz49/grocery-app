@@ -129,7 +129,7 @@ export function useWeeklyList(weekStart) {
     if (isOnline) {
       try {
         await weeklyApi.toggleItem(itemId, checked);
-      } catch (err) {
+      } catch {
         // Queue for later sync
         await addPendingChange({ type: 'toggle_item', itemId, checked });
       }
