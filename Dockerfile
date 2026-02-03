@@ -51,7 +51,7 @@ COPY . .
 EXPOSE 5173 3001
 
 # Default command runs both frontend and API
-CMD ["sh", "-c", "cd /app/client && npm run dev -- --host & python /app/api/dev_server.py"]
+CMD ["sh", "-c", "python /app/api/dev_server.py & cd /app/client && npm run dev -- --host"]
 
 # ============================================
 # Stage 4: Production image
