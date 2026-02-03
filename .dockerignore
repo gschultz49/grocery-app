@@ -1,0 +1,32 @@
+# Dependencies
+client/node_modules
+__pycache__
+*.pyc
+
+# Build artifacts
+client/dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment files (should be passed via docker-compose)
+.env
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+!README.md
+
+# Planning files
+.planning
+
+# Claude settings
+.claude
