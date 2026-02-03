@@ -26,7 +26,7 @@ A grocery list app that integrates with Notion to make weekly meal planning easi
 
 ## Project Structure
 ```
-/home/user/demos/
+grocery-app/
 ├── api/                          # Python serverless functions
 │   ├── _utils/
 │   │   ├── __init__.py
@@ -35,6 +35,7 @@ A grocery list app that integrates with Notion to make weekly meal planning easi
 │   ├── cron/
 │   │   ├── analyze-week.py       # Sunday 8 AM - learns from previous week
 │   │   └── generate-weekly.py    # Sunday 9 AM - creates suggestions
+│   ├── dev_server.py             # Local development server wrapper
 │   ├── notifications.py
 │   ├── pantry.py
 │   ├── recipes.py
@@ -66,10 +67,26 @@ A grocery list app that integrates with Notion to make weekly meal planning easi
 │   ├── tailwind.config.js
 │   ├── postcss.config.js
 │   └── vite.config.js
+├── e2e/                          # Playwright E2E tests
+│   ├── auth.spec.js
+│   ├── weekly-list.spec.js
+│   ├── recipes.spec.js
+│   ├── settings.spec.js
+│   ├── navigation.spec.js
+│   └── offline.spec.js
+├── docker/
+│   └── nginx.conf                # Production nginx config
 ├── supabase/
 │   └── schema.sql                # Full database schema with seed data
+├── .github/workflows/
+│   └── playwright.yml            # CI/CD for E2E tests
+├── Dockerfile                    # Multi-stage: dev + prod
+├── docker-compose.yml            # Local development orchestration
+├── playwright.config.js          # E2E test configuration
 ├── vercel.json                   # Vercel config with cron jobs
 ├── requirements.txt              # Python dependencies
+├── README.md                     # Main documentation
+├── README-TESTING.md             # Testing guide
 └── .env.example                  # Environment variables template
 ```
 
@@ -121,11 +138,14 @@ Key tables:
 - [x] Offline support with IndexedDB
 - [x] Mobile-first React UI with Tailwind CSS
 - [x] Schedule configuration in Settings
+- [x] Docker support for local development
+- [x] Playwright E2E testing framework
+- [x] Comprehensive documentation (README.md)
 
 ## Pending Items
 - [ ] PWA support (service worker, manifest.json)
-- [ ] Playwright end-to-end tests
-- [ ] Full testing and deployment
+- [ ] Fix Tailwind CSS production build config
+- [ ] Full deployment and testing
 
 ## Environment Variables Needed
 ```
@@ -163,8 +183,151 @@ CRON_SECRET=
 - **Offline-first for checkboxes**: IndexedDB stores checkbox states locally, syncs when online
 - **Learning algorithm**: Combines acceptance rate, recency, and explicit favorites with randomness for recipe suggestions
 
-## Branch
-`claude/grocery-list-notion-app-e7zDL`
+## Development Patterns
 
-## Latest Commit
-`efd7575 feat: Initial grocery list app with Notion integration`
+### Vercel Handler Pattern
+API endpoints use Vercel's `BaseHTTPRequestHandler` pattern:
+
+```python
+from http.server import BaseHTTPRequestHandler
+
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        # Handle GET request
+        self._send_json({"data": "example"})
+
+    def _send_json(self, data):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+```
+
+**Local Development**: `api/dev_server.py` wraps these handlers for local testing:
+- Routes `/api/*` paths to appropriate handler modules
+- Dynamically loads handler classes
+- Provides `_send_json` and `_send_error` helper methods
+- Runs on port 3001 (configurable via `API_PORT` env var)
+
+### Frontend-Backend Communication
+
+**Development**:
+- Frontend: Vite dev server on port 5173
+- Backend: Python dev server on port 3001
+- Vite proxy config forwards `/api/*` to backend
+
+```javascript
+// vite.config.js
+server: {
+  proxy: {
+    '/api': {
+      target: process.env.VITE_API_URL || 'http://localhost:3001',
+      changeOrigin: true,
+    },
+  },
+}
+```
+
+**Production** (Vercel):
+- Frontend static files served by Vercel CDN
+- `/api/*` routes automatically mapped to serverless functions
+
+### JSX in .js Files
+Project uses `.js` extension for React hooks that contain JSX. Vite config handles this:
+
+```javascript
+// vite.config.js
+optimizeDeps: {
+  esbuildOptions: {
+    loader: {
+      '.js': 'jsx',  // Treat .js files as JSX during dependency optimization
+    },
+  },
+}
+```
+
+### Docker Multi-Stage Build
+
+**Development stage**:
+- Includes both Node.js and Python
+- Installs all dependencies
+- Runs Vite dev server + API server concurrently
+- Supports hot reload via volume mounts
+
+**Production stage**:
+- Frontend built with Vite
+- Nginx serves static files
+- Python API runs alongside
+- Optimized for size and performance
+
+```bash
+# Development
+docker compose up app-dev
+
+# Production
+docker compose --profile prod up app-prod
+```
+
+### E2E Testing Strategy
+
+Playwright tests cover:
+1. **Authentication flow** - Google OAuth, email whitelist
+2. **Core features** - Weekly lists, recipes, settings
+3. **Offline support** - IndexedDB sync
+4. **Mobile responsiveness** - Multiple viewports
+5. **Cross-browser** - Chrome, Firefox, Safari
+
+**Test isolation**: Each test is independent and can run in parallel
+
+**Auto-start server**: Playwright config automatically starts Vite dev server:
+```javascript
+webServer: {
+  command: 'cd client && npm run dev',
+  url: 'http://localhost:5173',
+  reuseExistingServer: !process.env.CI,
+}
+```
+
+## Known Issues
+
+1. **Tailwind CSS Production Build**: Uses Tailwind 4 which requires `@tailwindcss/postcss` instead of direct PostCSS plugin. Development builds work fine.
+
+2. **GitHub Actions OAuth Scope**: Workflows can't be committed via OAuth tokens without `workflow` scope. Must be added manually in repository.
+
+3. **Python Output Buffering**: Use `flush=True` in print statements for Docker logs to appear immediately
+
+## Branches
+- **Main**: `claude/grocery-list-notion-app-e7zDL`
+- **Docker Support**: `feature/docker-support` (PR #2)
+- **Playwright Testing**: `feature/playwright-testing` (PR #3)
+
+## Recent Commits
+- `f99afcb` docs: Add comprehensive README with setup instructions
+- `d7bce5a` feat: Add Playwright E2E testing framework
+- `a69f7ef` fix: Resolve Docker dev server routing and Vite JSX handling
+- `35ba07a` feat: Add Docker support for local development and production
+- `efd7575` feat: Initial grocery list app with Notion integration
+
+## Local Development Workflow
+
+1. **With Docker** (recommended):
+   ```bash
+   cp .env.example .env
+   # Edit .env with credentials
+   docker compose up app-dev
+   ```
+
+2. **Manual**:
+   ```bash
+   # Terminal 1 - Backend
+   python api/dev_server.py
+
+   # Terminal 2 - Frontend
+   cd client && npm run dev
+   ```
+
+3. **Run tests**:
+   ```bash
+   cd client
+   npm run test:e2e
+   ```
