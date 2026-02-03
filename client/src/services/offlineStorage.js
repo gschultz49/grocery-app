@@ -61,8 +61,16 @@ export async function getCachedWeeklyList(weekStart) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction('weeklyList', 'readonly');
     const store = tx.objectStore('weeklyList');
-    const request = store.get(weekStart);
-    request.onsuccess = () => resolve(request.result);
+    // If no specific week requested, return the most recently cached list
+    const request = weekStart ? store.get(weekStart) : store.getAll();
+    request.onsuccess = () => {
+      if (weekStart) {
+        resolve(request.result);
+      } else {
+        const all = request.result;
+        resolve(all.length > 0 ? all[all.length - 1] : null);
+      }
+    };
     request.onerror = () => reject(request.error);
   });
 }
